@@ -1,12 +1,17 @@
-use actix_web::{App, HttpServer, Result, middleware, web};
+use actix_web::{App, HttpServer, middleware, web};
 use dotenv::dotenv;
+use jwt::JwtMiddleware;
+use log::error;
 use logic::{
-    AppState, JwtMiddleware, create_transaction, get_transactions, login, protected_route, register,
+    AppState, create_transaction, get_balance, get_transactions, login, protected_route, register,
 };
-use serde::Deserialize;
 use sqlx::PgPool;
 use std::env;
+
+mod error;
+mod jwt;
 mod logic;
+mod transaction;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -28,30 +33,75 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(app_state.clone())
             .wrap(middleware::Logger::default())
-            .wrap(JwtMiddleware) // Apply JWT middleware
             .service(
                 web::scope("/api")
-                    .service(web::resource("/register").route(web::post().to(register)))
-                    .service(web::resource("/login").route(web::post().to(login)))
+                    .service(web::resource("/register").route(web::post().to(
+                        |req, state| async move {
+                            match register(req, state).await {
+                                Ok(resp) => resp,
+                                Err(e) => e.to_response(),
+                            }
+                        },
+                    )))
+                    .service(web::resource("/login").route(web::post().to(
+                        |req, state| async move {
+                            match login(req, state).await {
+                                Ok(resp) => resp,
+                                Err(e) => e.to_response(),
+                            }
+                        },
+                    )))
                     .service(
                         web::resource("/transactions")
-                            .route(web::post().to(create_transaction))
-                            .route(web::get().to(get_transactions)),
+                            .wrap(JwtMiddleware) // Apply JWT middleware
+                            .route(web::post().to(|req, state, http_req| async move {
+                                match create_transaction(req, state, http_req).await {
+                                    Ok(resp) => resp,
+                                    Err(e) => {
+                                        error!("Transaction creation error: {:?}", e);
+                                        e.to_response()
+                                    }
+                                }
+                            }))
+                            .route(web::get().to(|state, http_req| async move {
+                                match get_transactions(state, http_req).await {
+                                    Ok(resp) => resp,
+                                    Err(e) => {
+                                        error!("Transaction fetch error: {:?}", e);
+                                        e.to_response()
+                                    }
+                                }
+                            })),
                     )
-                    .service(web::resource("/protected").route(web::get().to(protected_route))),
+                    .service(
+                        web::resource("/balance")
+                            .wrap(JwtMiddleware)
+                            .route(web::get().to(|state, http_req| async move {
+                                match get_balance(state, http_req).await {
+                                    Ok(resp) => resp,
+                                    Err(e) => {
+                                        error!("Balance fetch error: {:?}", e);
+                                        e.to_response()
+                                    }
+                                }
+                            })),
+                    )
+                    .service(
+                        web::resource("/protected")
+                            .wrap(JwtMiddleware) // Apply JWT middleware
+                            .route(web::get().to(|state, http_req| async move {
+                                match protected_route(state, http_req).await {
+                                    Ok(resp) => resp,
+                                    Err(e) => {
+                                        error!("Protected route error: {:?}", e);
+                                        e.to_response()
+                                    }
+                                }
+                            })),
+                    ),
             )
     })
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
-}
-
-#[derive(Deserialize)]
-struct Info {
-    username: String,
-    mobile: String,
-}
-
-async fn user_registration(info: web::Json<Info>) -> Result<String> {
-    Ok(format!("Welcome {}!", info.mobile))
 }
