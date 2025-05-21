@@ -1,15 +1,11 @@
 use actix_web::{App, HttpServer, middleware, web};
+pub use dodowork::dodo::{error, jwt, logic, transaction};
 use dotenv::dotenv;
 use jwt::JwtMiddleware;
 use log::error;
 pub use logic::{AppState, create_transaction, get_balance, get_transactions, login, register};
 use sqlx::PgPool;
 use std::env;
-
-pub mod error;
-pub mod jwt;
-pub mod logic;
-pub mod transaction;
 
 // use dodowork::{jwt::*, error::*, logic::*, transaction::*};
 

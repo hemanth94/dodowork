@@ -5,7 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sqlx::postgres::{PgTypeInfo, PgValueRef};
 use sqlx::{Decode, Encode, FromRow, Postgres, Type};
 
-use crate::error::TransactionError;
+use crate::dodo::error::TransactionError;
 use std::fmt;
 use std::str::FromStr;
 

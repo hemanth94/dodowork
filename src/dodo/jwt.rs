@@ -4,7 +4,7 @@ use futures_util::future::{LocalBoxFuture, Ready, ok};
 use jsonwebtoken::{DecodingKey, Validation, decode};
 use std::rc::Rc;
 
-use crate::logic::{AppState, Claims};
+use crate::dodo::logic::{AppState, Claims};
 
 // JWT Middleware
 #[derive(Clone)]

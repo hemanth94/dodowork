@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{FromRow, PgPool};
 
-use crate::{
+use crate::dodo::{
     error::{LoginError, RegisterError, TransactionError},
     transaction::{Transaction, TransactionType},
 };

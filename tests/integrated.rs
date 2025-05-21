@@ -3,7 +3,8 @@ mod tests {
     use actix_web::http::StatusCode;
     use actix_web::{App, test, web};
     use chrono::{Duration, Utc};
-    use dodowork::logic::AppState;
+    use dodowork::dodo::logic;
+    use dodowork::dodo::logic::AppState;
     use dotenv::dotenv;
     use jsonwebtoken::{EncodingKey, Header, encode};
     use rust_decimal::Decimal;
@@ -12,7 +13,7 @@ mod tests {
     use std::env;
     use std::future::Future;
 
-    use dodowork::{error::*, jwt::*, logic::*, transaction::*};
+    use dodowork::dodo::{error::*, jwt::*, logic::*, transaction::*};
 
     // Helper to setup test app and database
     async fn setup() -> (
@@ -47,20 +48,18 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_state.clone()).service(
                 web::scope("/api")
-                    .service(
-                        web::resource("/register").route(web::post().to(dodowork::logic::register)),
-                    )
-                    .service(web::resource("/login").route(web::post().to(dodowork::logic::login)))
+                    .service(web::resource("/register").route(web::post().to(logic::register)))
+                    .service(web::resource("/login").route(web::post().to(logic::login)))
                     .service(
                         web::resource("/transactions")
                             .wrap(JwtMiddleware)
-                            .route(web::post().to(dodowork::logic::create_transaction))
-                            .route(web::get().to(dodowork::logic::get_transactions)),
+                            .route(web::post().to(logic::create_transaction))
+                            .route(web::get().to(logic::get_transactions)),
                     )
                     .service(
                         web::resource("/balance")
                             .wrap(JwtMiddleware)
-                            .route(web::get().to(dodowork::logic::get_balance)),
+                            .route(web::get().to(dodowork::dodo::logic::get_balance)),
                     ),
             ),
         )
@@ -72,7 +71,7 @@ mod tests {
     // Helper to generate JWT token
     async fn generate_jwt(user_id: i32, jwt_secret: &str) -> String {
         let expiration = Utc::now() + Duration::hours(24);
-        let claims = dodowork::logic::Claims {
+        let claims = dodowork::dodo::logic::Claims {
             sub: user_id.to_string(),
             exp: expiration.timestamp() as usize,
         };
