@@ -45,16 +45,6 @@ pub enum RegisterError {
     InvalidInput(String),
 }
 
-#[derive(Error, Debug)]
-pub enum ProtectedError {
-    #[error("Invalid token")]
-    InvalidToken,
-    #[error("Invalid user ID")]
-    InvalidUserId,
-    #[error("Database error: {0}")]
-    Database(#[from] sqlx::Error),
-}
-
 impl LoginError {
     pub fn to_response(&self) -> HttpResponse {
         let msg = self.to_string();
@@ -116,25 +106,6 @@ impl RegisterError {
 
 impl From<RegisterError> for Error {
     fn from(err: RegisterError) -> Self {
-        actix_web::error::ErrorInternalServerError(err)
-    }
-}
-
-impl ProtectedError {
-    pub fn to_response(&self) -> HttpResponse {
-        let msg = self.to_string();
-        HttpResponse::build(match self {
-            ProtectedError::InvalidToken | ProtectedError::InvalidUserId => {
-                StatusCode::UNAUTHORIZED
-            }
-            ProtectedError::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
-        })
-        .json(serde_json::json!({ "error": msg }))
-    }
-}
-
-impl From<ProtectedError> for Error {
-    fn from(err: ProtectedError) -> Self {
         actix_web::error::ErrorInternalServerError(err)
     }
 }

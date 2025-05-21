@@ -4,16 +4,17 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{EncodingKey, Header, encode};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::{FromRow, PgPool};
 
 use crate::{
-    error::{LoginError, ProtectedError, RegisterError, TransactionError},
+    error::{LoginError, RegisterError, TransactionError},
     transaction::{Transaction, TransactionType},
 };
 
 // User data structure
 #[derive(Serialize, Deserialize, FromRow, Clone)]
-struct User {
+pub struct User {
     id: i32,
     username: String,
     password_hash: String,
@@ -65,7 +66,7 @@ pub async fn register(
             "Username and password cannot be empty".into(),
         ));
     }
-    if req.password.len() < 8 {
+    if req.password.len() < 5 {
         return Err(RegisterError::InvalidInput(
             "Password must be at least 5 characters".into(),
         ));
@@ -77,7 +78,7 @@ pub async fn register(
         .fetch_optional(&state.db_pool)
         .await;
 
-    if existing_user.unwrap().is_some() {
+    if existing_user.is_err() {
         return Err(RegisterError::UsernameExists);
     }
 
@@ -93,7 +94,9 @@ pub async fn register(
     .fetch_one(&state.db_pool)
     .await?;
 
-    Ok(HttpResponse::Ok().json("User registered successfully"))
+    Ok(HttpResponse::Ok().json(json!({
+        "message": "User registered successfully"
+    })))
 }
 
 // Login handler
@@ -243,21 +246,4 @@ pub async fn get_balance(
         .await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({ "balance": balance })))
-}
-
-// Protected route handler
-pub async fn protected_route(
-    _state: web::Data<AppState>,
-    http_req: HttpRequest,
-) -> Result<HttpResponse, ProtectedError> {
-    let user_id = http_req
-        .extensions()
-        .get::<String>()
-        .ok_or(ProtectedError::InvalidToken)?
-        .parse::<i32>()
-        .map_err(|_| ProtectedError::InvalidUserId)?;
-
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "message": format!("Protected route accessed by user ID {}", user_id)
-    })))
 }

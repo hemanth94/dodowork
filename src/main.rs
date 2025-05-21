@@ -2,16 +2,16 @@ use actix_web::{App, HttpServer, middleware, web};
 use dotenv::dotenv;
 use jwt::JwtMiddleware;
 use log::error;
-use logic::{
-    AppState, create_transaction, get_balance, get_transactions, login, protected_route, register,
-};
+pub use logic::{AppState, create_transaction, get_balance, get_transactions, login, register};
 use sqlx::PgPool;
 use std::env;
 
-mod error;
-mod jwt;
-mod logic;
-mod transaction;
+pub mod error;
+pub mod jwt;
+pub mod logic;
+pub mod transaction;
+
+// use dodowork::{jwt::*, error::*, logic::*, transaction::*};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -81,19 +81,6 @@ async fn main() -> std::io::Result<()> {
                                     Ok(resp) => resp,
                                     Err(e) => {
                                         error!("Balance fetch error: {:?}", e);
-                                        e.to_response()
-                                    }
-                                }
-                            })),
-                    )
-                    .service(
-                        web::resource("/protected")
-                            .wrap(JwtMiddleware) // Apply JWT middleware
-                            .route(web::get().to(|state, http_req| async move {
-                                match protected_route(state, http_req).await {
-                                    Ok(resp) => resp,
-                                    Err(e) => {
-                                        error!("Protected route error: {:?}", e);
                                         e.to_response()
                                     }
                                 }
