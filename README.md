@@ -28,6 +28,7 @@ This project contains:
       -  `curl -X GET http://localhost:8080/api/transactions  -H "Authorization: Bearer <token>"`
 
 
+**TESTs** : Simply Run `cargo test`
 
 **DISCLAIMER:**
 - Test cases are written for various api endpoints but many of them are failing, it needs more work to be done.
