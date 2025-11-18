@@ -1,4 +1,4 @@
-**DODOPAYMENTS PROJECT**
+**PAYMENTS PROJECT**
 
 This project contains:
 - Webservice for User login, registration, and transactions.
